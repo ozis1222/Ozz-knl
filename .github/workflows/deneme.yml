@@ -1,0 +1,36 @@
+name: Deneme videosu
+
+on:
+  workflow_dispatch:
+  push:
+    paths: [".github/workflows/deneme.yml", "calis.js", "uret.js", "kanallar/**"]
+
+permissions:
+  contents: read
+
+jobs:
+  uret:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      HYPERFRAMES_NO_TELEMETRY: "1"
+      DO_NOT_TRACK: "1"
+      HYPERFRAMES_TRANSCRIBE_TIMEOUT_MS: "1800000"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Araclari kur
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg fonts-noto-color-emoji
+          pipx install yt-dlp
+          npx -y hyperframes@0.9.35 browser ensure
+      - name: Videoyu uret
+        run: node calis.js kanallar/cliporaa/deneme.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: video
+          path: cikti/video.mp4
+          retention-days: 3
