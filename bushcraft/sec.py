@@ -55,12 +55,25 @@ def gemini(veri, soru):
     raise RuntimeError(f"Gemini cevap vermedi ({son})")
 
 
+def onar(p, bas, bit):
+    """Sik gorulen eksikleri tamamlar: baslik/aciklama yoksa acilistan alinir, pencereye gore yazilan sureler kaydirilir."""
+    steps = p.get("steps") or []
+    if steps:
+        p["title"] = p.get("title") or steps[0].get("caption")
+        p["description"] = p.get("description") or steps[0].get("vo")
+    parcalar = [x for s in steps for x in s.get("pieces") or []]
+    if bas and parcalar and all(x["end"] <= bit - bas + 1 for x in parcalar):
+        for x in parcalar:
+            x["start"] += bas
+            x["end"] += bas
+        if p.get("ambient"):
+            p["ambient"] = [t + bas if t < bas else t for t in p["ambient"]]
+
+
 def gecerli(p, bas, bit):
     """Plan pencere icinde ve tutarli mi; degilse nedenini dondurur."""
     if not p.get("usable"):
         return p.get("reason", "uygun degil")
-    if not p.get("title") or not p.get("description"):
-        return "baslik veya aciklama eksik"
     steps = p.get("steps") or []
     if not 5 <= len(steps) <= 9:
         return "adim sayisi hatali"
@@ -112,6 +125,7 @@ def main():
                 soru += ("\nShorts already made from this footage: " + json.dumps([[u.get("baslik"), u.get("acilis")] for u in eski])
                          + ". Make a clearly different edit: another hook shot, different moments, new captions and title.")
             p = gemini(base64.b64encode(open("is/proxy.mp4", "rb").read()).decode(), soru)
+            onar(p, bas, bit)
             neden = gecerli(p, bas, bit)
             if neden:
                 not_(f"{k['ad']} @{bas}: {neden}")
