@@ -5,6 +5,6 @@
   "sureEnCok": 60,
   "tekrarOraniEnCok": 0.2,
   "ilgiEnAz": 5,
-  "yasakKelimeler": ["nsfw", "nude", "naked", "sex", "porn", "boob", "goon", "gross", "n word", "strip", "kill myself", "suicide"],
+  "yasakKelimeler": ["nsfw", "nude", "naked", "sex", "porn", "boob", "goon", "gross", "n word", "sock", "strip", "kill myself", "suicide"],
   "denenecekAdaySayisi": 30
 }

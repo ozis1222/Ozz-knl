@@ -41,7 +41,7 @@ for (const c of adaylar.slice(0, k.denenecekAdaySayisi)) {
   } catch { console.log(`atlandı  ${c.yayinci} "${c.baslik}" (indirilemedi)`); continue; }
   const oran = tekrarOrani("is/kaynak.mp4");
   if (oran > k.tekrarOraniEnCok) { console.log(`elendi  ${c.yayinci} "${c.baslik}" tekrar=${oran.toFixed(2)} (60 fps değil)`); continue; }
-  const s = await analizEt("is/kaynak.mp4", c.yayinci);
+  const s = await analizEt("is/kaynak.mp4", c.yayinci, c.baslik);
   if (!s.safe || s.interesting < k.ilgiEnAz) { not(`elendi ${c.yayinci} "${c.baslik}": ${s.safe ? `ilgi ${s.interesting}/10` : s.reason}`); continue; }
   const bas = Math.max(0, Number(s.start) || 0);
   let bit = Math.min(c.sure, Number(s.end) || c.sure);
