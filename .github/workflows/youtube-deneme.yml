@@ -1,0 +1,38 @@
+name: YouTube indirme denemesi
+
+# GitHub bilgisayarından YouTube indirmesi engelleniyor mu? Yalnız ses + 10 sn görüntü dener.
+on:
+  workflow_dispatch:
+  push:
+    paths: [".github/workflows/youtube-deneme.yml"]
+
+permissions:
+  contents: read
+
+jobs:
+  dene:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Araclari kur
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          pipx install "yt-dlp[default]"
+      - name: Ses ve kisa goruntu indir
+        run: |
+          u="https://www.youtube.com/watch?v=8CT6HxYA0cg"
+          dene() {
+            ad="$1"; shift
+            if yt-dlp --no-playlist --js-runtimes node "$@" "$u" > log.txt 2>&1; then
+              echo "::notice title=$ad::basarili"
+            else
+              echo "::error title=$ad::$(grep -m1 ERROR log.txt | cut -c1-220)"
+              return 1
+            fi
+          }
+          sonuc=0
+          dene ses -f "ba[ext=m4a]/ba" -o ses.m4a || sonuc=1
+          dene goruntu -f "bv*[height<=1080][vcodec^=avc1]" --download-sections "*2871-2881" -o parca.mp4 || sonuc=1
+          ls -la
+          exit $sonuc
