@@ -10,10 +10,10 @@ fs.mkdirSync(path.join(proje, "assets"), { recursive: true });
 const sure = a.bitis - a.baslangic;
 
 // 1) Temel görüntü: üstte yüz (1080x700), altta oyun (1080x1000), en üstte başlık şeridi
-const [fx, fy, fw, fh] = a.yuz;   // kaynak (1920x1080) üzerinde kamera kutusu
+const [fx, fy, fw, fh] = a.yuz || [0, 0, 0, 0];  // kaynak (1920x1080) üzerinde kamera kutusu
 const [gx, gy, gw, gh] = a.oyun;  // kaynak üzerinde oyun kadrajı
 const yakin = a.yakinlas.map(([s, e]) => `between(t,${s},${e})`).join("+") || "0";
-const filtre = [
+const bolunmus = () => [
   `[0:v]split=3[v1][v2][v3]`,
   `[v1]crop=${fw}:${fh}:${fx}:${fy},scale=1080:700:flags=lanczos[yuz]`,
   `[v2]crop=${Math.round(fw * 0.78)}:${Math.round(fh * 0.78)}:${fx + Math.round(fw * 0.11)}:${fy + Math.round(fh * 0.08)},scale=1080:700:flags=lanczos[yakin]`,
@@ -22,7 +22,15 @@ const filtre = [
   `[bg][yuz]overlay=0:220:shortest=1[a]`,
   `[a][yakin]overlay=0:220:enable='${yakin}'[b]`,
   `[b][oyun]overlay=0:920,format=yuv420p[v]`,
-].join(";");
+];
+// yüz kamerası yoksa: tek görüntü, aksiyon ortada
+const tekli = () => {
+  const gen = 686; // 1080x1700 oranı
+  const x = Math.round(Math.min(1920 - gen, Math.max(0, gx + gw / 2 - gen / 2)));
+  return [`color=c=0x0d0d12:s=1080x1920:r=60[bg]`, `[0:v]crop=${gen}:1080:${x}:0,scale=1080:1700:flags=lanczos[tam]`,
+    `[bg][tam]overlay=0:220:shortest=1,format=yuv420p[v]`];
+};
+const filtre = (a.yuz ? bolunmus() : tekli()).join(";");
 execFileSync("ffmpeg", ["-v", "error", "-y", "-ss", String(a.baslangic), "-t", String(sure), "-i", a.kaynak,
   "-filter_complex", filtre, "-map", "[v]", "-map", "0:a", "-r", "60", "-g", "60", "-c:v", "libx264", "-crf", "19",
   "-preset", "veryfast", "-af", "loudnorm=I=-14:TP=-1.5", "-ar", "48000", "-c:a", "aac", "-t", String(sure),
@@ -31,7 +39,7 @@ execFileSync("ffmpeg", ["-v", "error", "-y", "-ss", String(a.baslangic), "-t", S
 // 2) Altyazı grupları (en fazla 3 kelime, cümle sonunda böl)
 const duzelt = a.duzelt || {};
 const kelimeler = JSON.parse(fs.readFileSync(a.dokum, "utf8"))
-  .filter((w) => w.start >= a.baslangic && w.start < a.bitis)
+  .filter((w) => a.altyazi !== false && w.start >= a.baslangic && w.start < a.bitis)
   .map((w) => ({ t: duzelt[w.id] ?? w.text, s: w.start - a.baslangic, e: Math.min(w.end, a.bitis) - a.baslangic }));
 const gruplar = [];
 let g = [];

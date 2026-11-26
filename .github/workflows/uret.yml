@@ -1,17 +1,17 @@
-name: Deneme videosu
+name: Gunluk video
 
 on:
   workflow_dispatch:
   push:
-    paths: [".github/workflows/deneme.yml", "calis.js", "uret.js", "kanallar/**"]
+    paths: [".github/workflows/uret.yml", "*.js", "kanallar/**/kanal.json"]
 
 permissions:
   contents: read
 
 jobs:
-  uret:
+  cliporaa:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 60
     env:
       HYPERFRAMES_NO_TELEMETRY: "1"
       DO_NOT_TRACK: "1"
@@ -27,10 +27,17 @@ jobs:
           sudo apt-get install -y ffmpeg fonts-noto-color-emoji
           pipx install yt-dlp
           npx -y hyperframes@0.9.35 browser ensure
+      - name: Klip sec ve ele
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_API_KEY_2: ${{ secrets.GEMINI_API_KEY_2 }}
+        run: node sec.js kanallar/cliporaa
       - name: Videoyu uret
-        run: node calis.js kanallar/cliporaa/deneme.json
+        run: |
+          node calis.js is/gunluk.json
+          cp is/gunluk.json cikti/bilgi.json
       - uses: actions/upload-artifact@v4
         with:
           name: video
-          path: cikti/video.mp4
+          path: cikti/
           retention-days: 3
