@@ -59,6 +59,8 @@ def gecerli(p, bas, bit):
     """Plan pencere icinde ve tutarli mi; degilse nedenini dondurur."""
     if not p.get("usable"):
         return p.get("reason", "uygun degil")
+    if not p.get("title") or not p.get("description"):
+        return "baslik veya aciklama eksik"
     steps = p.get("steps") or []
     if not 5 <= len(steps) <= 9:
         return "adim sayisi hatali"
