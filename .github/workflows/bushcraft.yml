@@ -1,0 +1,54 @@
+name: Bushcraft gunluk video
+
+on:
+  workflow_dispatch:
+  push:
+    paths: [".github/workflows/bushcraft.yml", "bushcraft/*.py"]
+  # Kanal baglanip ilk videolar onaylaninca acilacak:
+  # schedule:
+  #   - cron: "43 12 * * *"
+
+permissions:
+  contents: write
+
+jobs:
+  bushcraft:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      KAYNAKLAR: ${{ secrets.BUSHCRAFT_KAYNAKLAR }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Araclari kur
+        run: |
+          echo "$KAYNAKLAR" | jq -r '.[].id' | while read -r id; do echo "::add-mask::$id"; done
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          pipx install "yt-dlp[default]"
+          pip install edge-tts pillow
+          mkdir -p is
+          curl -sSfL -o is/Montserrat.ttf "https://github.com/google/fonts/raw/main/ofl/montserrat/Montserrat%5Bwght%5D.ttf"
+      - name: Bolum sec
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_API_KEY_2: ${{ secrets.GEMINI_API_KEY_2 }}
+        run: python bushcraft/sec.py
+      - name: Videoyu uret
+        run: python bushcraft/uret.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bushcraft-video
+          path: cikti/
+          retention-days: 3
+      - name: YouTube'a gizli yukle ve kaydet
+        if: github.event_name != 'push'
+        env:
+          YT_YETKI: ${{ secrets.YT_BUSHCRAFT }}
+        run: |
+          if [ -z "$YT_YETKI" ]; then echo "::notice::Kanal henuz bagli degil, yukleme atlandi"; exit 0; fi
+          python bushcraft/yukle.py
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Bushcraft bolumu kullanildi" bushcraft/kullanilan.json
+          git pull --rebase
+          git push
