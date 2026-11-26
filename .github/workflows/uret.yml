@@ -6,7 +6,7 @@ on:
     paths: [".github/workflows/uret.yml", "*.js", "kanallar/**/kanal.json"]
 
 permissions:
-  contents: read
+  contents: write  # yalniz kullanilan klip listesini kaydetmek icin
 
 jobs:
   cliporaa:
@@ -41,3 +41,17 @@ jobs:
           name: video
           path: cikti/
           retention-days: 3
+      - name: YouTube'a yukle (yalniz elle baslatilinca, gizli)
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          YT_YETKI: ${{ secrets.YT_CLIPORAA }}
+          YT_GIZLILIK: private
+        run: node yukle.js kanallar/cliporaa
+      - name: Kullanilan klibi kaydet
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Kullanilan klip eklendi" kanallar/cliporaa/kullanilan.json
+          git pull --rebase
+          git push
