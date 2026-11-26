@@ -59,4 +59,4 @@ for (const c of adaylar.slice(0, k.denenecekAdaySayisi)) {
 }
 console.error("Uygun klip bulunamadı");
 process.exit(1);
-})().catch((e) => { console.error(e.message); process.exit(1); });
+})().catch((e) => { console.log(`::error title=secim::${e.message.replace(/\n/g, " ")}`); process.exit(1); });

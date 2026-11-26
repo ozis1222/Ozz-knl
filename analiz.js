@@ -30,7 +30,7 @@ async function istek(anahtar, model, veri) {
       generationConfig: { responseMimeType: "application/json", temperature: 0.2 },
     }),
   });
-  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  if (!r.ok) throw new Error(`HTTP ${r.status} ${(await r.json().catch(() => ({}))).error?.message?.slice(0, 160) || ""}`);
   const j = await r.json();
   const aday = j.candidates?.[0];
   // Google'ın güvenlik filtresi engellediyse klip uygun değildir
@@ -51,7 +51,7 @@ async function analizEt(dosya) {
         if (typeof s.safe !== "boolean") throw new Error("eksik cevap");
         return s;
       } catch (e) {
-        console.log(`Gemini anahtar ${i + 1}, ${model}: ${e.message}`);
+        console.log(`::warning title=gemini::anahtar ${i + 1}, ${model}: ${e.message}`);
       }
     }
   }
