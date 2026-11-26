@@ -31,6 +31,8 @@ adim("kurgu", () => {
   execFileSync("node", ["uret.js", "is/ayar.json"], { stdio: "inherit" });
 });
 
-adim("render", () => kabuk(`${HF} render is/klip --output cikti/video.mp4 --quiet`));
+adim("render", () => kabuk(`${HF} render is/klip --fps 60 --output cikti/video.mp4 --quiet`));
+
+adim("akicilik kontrolu", () => execFileSync("node", ["akicilik.js", "cikti/video.mp4", "is/klip/assets/base.mp4"], { stdio: "inherit" }));
 
 console.log("\n" + sureler.join("\n"));

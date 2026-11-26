@@ -18,13 +18,13 @@ const filtre = [
   `[v1]crop=${fw}:${fh}:${fx}:${fy},scale=1080:700:flags=lanczos[yuz]`,
   `[v2]crop=${Math.round(fw * 0.78)}:${Math.round(fh * 0.78)}:${fx + Math.round(fw * 0.11)}:${fy + Math.round(fh * 0.08)},scale=1080:700:flags=lanczos[yakin]`,
   `[v3]crop=${gw}:${gh}:${gx}:${gy},scale=1080:1000[oyun]`,
-  `color=c=0x0d0d12:s=1080x1920:r=30[bg]`,
+  `color=c=0x0d0d12:s=1080x1920:r=60[bg]`,
   `[bg][yuz]overlay=0:220:shortest=1[a]`,
   `[a][yakin]overlay=0:220:enable='${yakin}'[b]`,
   `[b][oyun]overlay=0:920,format=yuv420p[v]`,
 ].join(";");
 execFileSync("ffmpeg", ["-v", "error", "-y", "-ss", String(a.baslangic), "-t", String(sure), "-i", a.kaynak,
-  "-filter_complex", filtre, "-map", "[v]", "-map", "0:a", "-r", "30", "-g", "30", "-c:v", "libx264", "-crf", "19",
+  "-filter_complex", filtre, "-map", "[v]", "-map", "0:a", "-r", "60", "-g", "60", "-c:v", "libx264", "-crf", "19",
   "-preset", "veryfast", "-af", "loudnorm=I=-14:TP=-1.5", "-ar", "48000", "-c:a", "aac", "-t", String(sure),
   path.join(proje, "assets", "base.mp4")], { stdio: "inherit" });
 
