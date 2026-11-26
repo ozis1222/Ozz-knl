@@ -3,6 +3,7 @@
 const fs = require("fs");
 const path = require("path");
 const { execFileSync } = require("child_process");
+const { konusmaMi } = require("./dokum");
 
 const a = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
 const proje = a.proje;
@@ -25,9 +26,9 @@ const bolunmus = () => [
 ];
 // yüz kamerası yoksa: tek görüntü, aksiyon ortada
 const tekli = () => {
-  const gen = 686; // 1080x1700 oranı
+  const gen = Math.round(gh * 1080 / 1700);
   const x = Math.round(Math.min(1920 - gen, Math.max(0, gx + gw / 2 - gen / 2)));
-  return [`color=c=0x0d0d12:s=1080x1920:r=60[bg]`, `[0:v]crop=${gen}:1080:${x}:0,scale=1080:1700:flags=lanczos[tam]`,
+  return [`color=c=0x0d0d12:s=1080x1920:r=60[bg]`, `[0:v]crop=${gen}:${gh}:${x}:0,scale=1080:1700:flags=lanczos[tam]`,
     `[bg][tam]overlay=0:220:shortest=1,format=yuv420p[v]`];
 };
 const filtre = (a.yuz ? bolunmus() : tekli()).join(";");
@@ -39,7 +40,7 @@ execFileSync("ffmpeg", ["-v", "error", "-y", "-ss", String(a.baslangic), "-t", S
 // 2) Altyazı grupları (en fazla 3 kelime, cümle sonunda böl)
 const duzelt = a.duzelt || {};
 const kelimeler = JSON.parse(fs.readFileSync(a.dokum, "utf8"))
-  .filter((w) => a.altyazi !== false && w.start >= a.baslangic && w.start < a.bitis)
+  .filter((w) => konusmaMi(w.text) && w.start >= a.baslangic && w.start < a.bitis)
   .map((w) => ({ t: duzelt[w.id] ?? w.text, s: w.start - a.baslangic, e: Math.min(w.end, a.bitis) - a.baslangic }));
 const gruplar = [];
 let g = [];
@@ -48,6 +49,7 @@ for (const k of kelimeler) {
   if (g.length === 3 || /[.?!]$/.test(k.t)) { gruplar.push(g); g = []; }
 }
 if (g.length) gruplar.push(g);
+if (!gruplar.length) { console.error("ALTYAZI YOK: video üretilmedi"); process.exit(1); }
 
 const kacis = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;");
 const f = (n) => Number(n.toFixed(3));

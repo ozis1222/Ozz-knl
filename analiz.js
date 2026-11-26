@@ -86,10 +86,13 @@ async function dene(anahtarlar, veri, soru) {
   throw new Error(`Gemini'den cevap alınamadı (${sonHata})`); // eleme yapılamadan video üretilmez
 }
 // Gemini cevabını 1920x1080 kaynak üzerinde kırpma kutularına çevirir
-function kadraj(s) {
+function kadraj(s, gomuluAltyazi) {
   const sinirla = (v, a, b) => Math.min(b, Math.max(a, v));
   const odak = sinirla(Number(s.focus_x) || 500, 0, 1000) * 1.92;
-  const oyun = [Math.round(sinirla(odak - 583, 0, 1920 - 1166)), 0, 1166, 1080];
+  // Kaynakta altyazı varsa alt şeridi kes ki iki altyazı üst üste binmesin
+  const yuk = gomuluAltyazi ? 920 : 1080;
+  const gen = Math.round(yuk * 1.08);
+  const oyun = [Math.round(sinirla(odak - gen / 2, 0, 1920 - gen)), 0, gen, yuk];
   if (!Array.isArray(s.facecam)) return { yuz: null, oyun };
   const [y1, x1, y2, x2] = s.facecam.map(Number);
   let w = (x2 - x1) * 1.92, h = (y2 - y1) * 1.08;

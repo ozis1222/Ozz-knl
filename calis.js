@@ -2,6 +2,7 @@
 // Kullanım: node calis.js kanallar/cliporaa/deneme.json
 const fs = require("fs");
 const { execFileSync, execSync } = require("child_process");
+const { dokumAl } = require("./dokum");
 
 const ayar = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
 const HF = "npx -y hyperframes@0.9.35";
@@ -22,8 +23,7 @@ adim("indirme", () => execFileSync("yt-dlp",
   { stdio: "inherit" }));
 
 adim("yaziya dokme", () => {
-  execFileSync("ffmpeg", ["-v", "error", "-y", "-i", "is/kaynak.mp4", "-vn", "-ac", "1", "-ar", "16000", "is/kaynak.wav"], { stdio: "inherit" });
-  kabuk(`${HF} transcribe is/kaynak.wav --engine whisper --model small --language ${ayar.dil} --dir is`);
+  dokumAl("is/kaynak.mp4", ayar.dil);
 });
 
 adim("kurgu", () => {

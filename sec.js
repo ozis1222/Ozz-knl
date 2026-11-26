@@ -6,6 +6,7 @@ const path = require("path");
 const { execFileSync } = require("child_process");
 const { tekrarOrani } = require("./olc");
 const { analizEt, kadraj } = require("./analiz");
+const { dokumAl } = require("./dokum");
 const not = (m) => console.log(process.env.GITHUB_ACTIONS ? `::notice title=secim::${m}` : m);
 
 const klasor = process.argv[2];
@@ -46,11 +47,14 @@ for (const c of adaylar.slice(0, k.denenecekAdaySayisi)) {
   const bas = Math.max(0, Number(s.start) || 0);
   let bit = Math.min(c.sure, Number(s.end) || c.sure);
   if (bit - bas < 8) bit = c.sure;
+  // Altyazı şart: seçilen bölümde yeterince konuşma yoksa sıradaki klibe geç
+  const kelime = dokumAl("is/kaynak.mp4", "en").filter((w) => w.start >= bas && w.start < bit).length;
+  const gereken = Math.max(k.kelimeEnAz, Math.round((bit - bas) * k.saniyedeKelimeEnAz));
+  if (kelime < gereken) { not(`elendi ${c.yayinci} "${c.baslik}": konuşma az (${kelime}/${gereken} kelime)`); continue; }
   const tepki = Array.isArray(s.reaction) ? s.reaction.map((t) => t - bas) : null;
   const ayar = {
-    klipUrl: c.url, dil: "en", baslangic: bas, bitis: bit, ...kadraj(s),
+    klipUrl: c.url, dil: "en", baslangic: bas, bitis: bit, ...kadraj(s, s.has_captions),
     yakinlas: tepki && tepki[1] > tepki[0] ? [tepki] : [],
-    altyazi: !s.has_captions,
     etiket: `TWITCH.TV/${c.yayinci.toUpperCase()}`, baslik: String(s.title).slice(0, 60),
     youtube: { baslik: String(s.yt_title || s.title), aciklama: String(s.description || ""), etiketler: Array.isArray(s.hashtags) ? s.hashtags.map(String) : [] },
   };
