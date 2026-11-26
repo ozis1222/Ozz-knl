@@ -15,18 +15,22 @@ Reply with JSON only:
  "facecam": [ymin,xmin,ymax,xmax] | null,  // streamer webcam overlay box, 0-1000 normalized; null if there is no separate overlay (e.g. camera fills the screen)
  "focus_x": integer,         // 0-1000, horizontal position of the main action outside the webcam
  "has_captions": boolean,    // true if speech captions are already burned into the video
- "title": string,            // English, max 55 chars, honest to what happens, may end with one emoji, no hashtags
+ "title": string,            // on-screen headline, English, max 45 chars, curiosity hook, one emoji at the end
+ "yt_title": string,         // YouTube title, max 70 chars: streamer name + the most surprising moment, open a curiosity gap without revealing the ending, 1-2 words may be CAPS, one emoji, no hashtags
+ "description": string,      // 2 short lines: a hook sentence using searchable words (streamer, game, what happens), then a question that invites comments
+ "hashtags": [string],       // 4-5 specific tags without #: streamer, game, moment type
+ // All text must be truthful to the clip: no invented events, no fake claims, no "gone wrong" bait, no asking to like or subscribe.
  "start": number, "end": number,   // best self-contained part in seconds, 12-45 s long
  "reaction": [start,end] | null    // seconds of the streamer's biggest reaction, 1.5-3 s
 }`;
 
-async function istek(anahtar, model, veri) {
+async function istek(anahtar, model, veri, yayinci) {
   const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
     method: "POST",
     headers: { "content-type": "application/json", "x-goog-api-key": anahtar },
     signal: AbortSignal.timeout(180000),
     body: JSON.stringify({
-      contents: [{ parts: [{ inline_data: { mime_type: "video/mp4", data: veri } }, { text: SORU }] }],
+      contents: [{ parts: [{ inline_data: { mime_type: "video/mp4", data: veri } }, { text: `${SORU}\nStreamer (Twitch name): ${yayinci}` }] }],
       generationConfig: { responseMimeType: "application/json", temperature: 0.2 },
     }),
   });
@@ -38,7 +42,7 @@ async function istek(anahtar, model, veri) {
   return JSON.parse(aday.content.parts.map((p) => p.text || "").join(""));
 }
 
-async function analizEt(dosya) {
+async function analizEt(dosya, yayinci) {
   execFileSync("ffmpeg", ["-v", "error", "-y", "-i", dosya, "-vf", "scale=640:-2,fps=10", "-c:v", "libx264",
     "-crf", "30", "-maxrate", "900k", "-bufsize", "1800k", "-c:a", "aac", "-b:a", "64k", "is/kucuk.mp4"]);
   const veri = fs.readFileSync("is/kucuk.mp4").toString("base64");
@@ -51,7 +55,7 @@ async function analizEt(dosya) {
     for (const model of MODELLER) {
       for (const [i, anahtar] of anahtarlar.entries()) {
         try {
-          const s = await istek(anahtar, model, veri);
+          const s = await istek(anahtar, model, veri, yayinci);
           if (typeof s.safe !== "boolean") throw new Error("eksik cevap");
           console.log(`Gemini cevap verdi: ${model}`);
           return s;

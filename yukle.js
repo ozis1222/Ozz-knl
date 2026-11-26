@@ -19,10 +19,17 @@ const path = require("path");
   if (!t.access_token) throw new Error(`Yetki yenilenemedi: ${t.error}`);
 
   const yayinci = bilgi.etiket.split("/")[1].toLowerCase();
+  // Gemini'nin yazdığı metinler: bağlantı ve < > temizlenir
+  const m = bilgi.youtube || {};
+  const temiz = (s) => String(s || "").replace(/https?:\/\/\S+|[<>]/g, "").trim();
+  const etiketler = [...new Set(["shorts", yayinci.replace(/_/g, ""), ...(m.etiketler || [])]
+    .map((e) => e.toLowerCase().replace(/[^a-z0-9]/g, "")).filter(Boolean))].slice(0, 6);
+  const ana = temiz(m.baslik || bilgi.baslik).replace(/#\S+/g, "").trim();
   const govde = {
     snippet: {
-      title: `${bilgi.baslik.replace(/[<>]/g, "")} #shorts`.slice(0, 100),
-      description: `Clip from twitch.tv/${yayinci}\n${bilgi.klipUrl}\n\n#shorts #${yayinci.replace(/_/g, "")} #twitch`,
+      title: `${Array.from(ana).slice(0, 80).join("")} #shorts`,
+      description: `${temiz(m.aciklama)}\n\nClip from twitch.tv/${yayinci}\n${bilgi.klipUrl}\n\n${etiketler.map((e) => `#${e}`).join(" ")}`.trim(),
+      tags: etiketler,
       categoryId: "20",
     },
     status: { privacyStatus: process.env.YT_GIZLILIK || "private", selfDeclaredMadeForKids: false },

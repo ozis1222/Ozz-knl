@@ -41,7 +41,7 @@ for (const c of adaylar.slice(0, k.denenecekAdaySayisi)) {
   } catch { console.log(`atlandı  ${c.yayinci} "${c.baslik}" (indirilemedi)`); continue; }
   const oran = tekrarOrani("is/kaynak.mp4");
   if (oran > k.tekrarOraniEnCok) { console.log(`elendi  ${c.yayinci} "${c.baslik}" tekrar=${oran.toFixed(2)} (60 fps değil)`); continue; }
-  const s = await analizEt("is/kaynak.mp4");
+  const s = await analizEt("is/kaynak.mp4", c.yayinci);
   if (!s.safe || s.interesting < k.ilgiEnAz) { not(`elendi ${c.yayinci} "${c.baslik}": ${s.safe ? `ilgi ${s.interesting}/10` : s.reason}`); continue; }
   const bas = Math.max(0, Number(s.start) || 0);
   let bit = Math.min(c.sure, Number(s.end) || c.sure);
@@ -51,10 +51,11 @@ for (const c of adaylar.slice(0, k.denenecekAdaySayisi)) {
     klipUrl: c.url, dil: "en", baslangic: bas, bitis: bit, ...kadraj(s),
     yakinlas: tepki && tepki[1] > tepki[0] ? [tepki] : [],
     altyazi: !s.has_captions,
-    etiket: `TWITCH.TV/${c.yayinci.toUpperCase()}`, baslik: String(s.title).slice(0, 70),
+    etiket: `TWITCH.TV/${c.yayinci.toUpperCase()}`, baslik: String(s.title).slice(0, 60),
+    youtube: { baslik: String(s.yt_title || s.title), aciklama: String(s.description || ""), etiketler: Array.isArray(s.hashtags) ? s.hashtags.map(String) : [] },
   };
   fs.writeFileSync("is/gunluk.json", JSON.stringify(ayar, null, 2));
-  not(`secildi ${c.yayinci} "${c.baslik}" -> ${ayar.baslik} | yuz kamerasi: ${ayar.yuz ? "var" : "yok"}`);
+  not(`secildi ${c.yayinci} "${c.baslik}" -> ${ayar.youtube.baslik} | yuz kamerasi: ${ayar.yuz ? "var" : "yok"}`);
   return;
 }
 console.error("Uygun klip bulunamadı");
