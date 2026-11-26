@@ -27,6 +27,14 @@ const path = require("path");
     },
     status: { privacyStatus: process.env.YT_GIZLILIK || "private", selfDeclaredMadeForKids: false },
   };
+  // Belirlenen saat henüz gelmediyse YouTube o saatte kendisi yayınlar
+  if (process.env.YT_YAYIN_UTC) {
+    const an = new Date(`${new Date().toISOString().slice(0, 10)}T${process.env.YT_YAYIN_UTC}:00Z`);
+    if (an - Date.now() > 5 * 60000) {
+      govde.status.privacyStatus = "private";
+      govde.status.publishAt = an.toISOString();
+    }
+  }
   const bas = await fetch("https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status", {
     method: "POST",
     headers: { authorization: `Bearer ${t.access_token}`, "content-type": "application/json",
@@ -41,5 +49,5 @@ const path = require("path");
   const liste = path.join(klasor, "kullanilan.json");
   const kullanilan = JSON.parse(fs.readFileSync(liste, "utf8"));
   fs.writeFileSync(liste, JSON.stringify([...kullanilan, bilgi.klipUrl], null, 2) + "\n");
-  console.log(`::notice title=youtube::yüklendi (${s.status.privacyStatus}) https://youtu.be/${s.id}`);
+  console.log(`::notice title=youtube::yüklendi (${s.status.privacyStatus}${s.status.publishAt ? `, yayın ${s.status.publishAt}` : ""}) https://youtu.be/${s.id}`);
 })().catch((e) => { console.error(e.message); process.exit(1); });
