@@ -3,6 +3,7 @@ import base64, json, os, random, subprocess, sys, time, urllib.request
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PENCERE = 720
+ARA = 4
 MODELLER = os.environ.get("GEMINI_MODEL", "gemini-3.7-flash,gemini-flash-latest,gemini-flash-lite-latest").split(",")
 
 SORU = """This is raw bushcraft / survival footage. The big yellow number burned in the top-left corner is the time in SECONDS.
@@ -20,6 +21,8 @@ Reply with JSON only:
  ],
  "title": string,                    // truthful, max 60 chars, no hashtags
  "description": string}              // one or two truthful sentences
+The FIRST step's pieces must visibly show the finished result (cooked food, filled bottle, finished tool or raft), taken from later in the footage.
+Each caption and vo must match what is clearly visible in its own pieces. Total length of all pieces: 90-150 s.
 Use only seconds that exist in this footage. usable=false if there is no clear activity."""
 
 
@@ -31,8 +34,8 @@ def not_(m):
     print(f"::notice title=bushcraft secim::{m}", flush=True)
 
 
-def gemini(veri):
-    govde = json.dumps({"contents": [{"parts": [{"inline_data": {"mime_type": "video/mp4", "data": veri}}, {"text": SORU}]}],
+def gemini(veri, soru):
+    govde = json.dumps({"contents": [{"parts": [{"inline_data": {"mime_type": "video/mp4", "data": veri}}, {"text": soru}]}],
                         "generationConfig": {"responseMimeType": "application/json", "temperature": 0.4}}).encode()
     anahtarlar = [k for k in (os.environ.get("GEMINI_API_KEY"), os.environ.get("GEMINI_API_KEY_2")) if k]
     son = "anahtar yok"
@@ -75,6 +78,9 @@ def main():
     kaynaklar = json.loads(os.environ["KAYNAKLAR"])
     kullanilan = json.load(open(os.path.join(HERE, "kullanilan.json")))
     os.makedirs("is", exist_ok=True)
+    # ayni kaynak tekrar gelmeden once araya en az ARA baska video girer
+    yakin = {u["ad"] for u in kullanilan[-ARA:]}
+    kaynaklar = [k for k in kaynaklar if k["ad"] not in yakin]
     # en az kullanilan kaynak once
     sirali = sorted(kaynaklar, key=lambda k: (sum(u["ad"] == k["ad"] for u in kullanilan), random.random()))
     for k in sirali[:3]:
@@ -87,9 +93,10 @@ def main():
             continue
         sure = float(subprocess.check_output(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of",
                                               "csv=p=0", "is/dusuk.mp4"]))
-        dolu = {u["bas"] for u in kullanilan if u["ad"] == k["ad"]}
-        pencereler = [b for b in range(0, max(1, int(sure) - 120), PENCERE) if b not in dolu]
-        random.shuffle(pencereler)
+        gecmis = [u for u in kullanilan if u["ad"] == k["ad"]]
+        # once hic kullanilmamis bolumler; bitince eskiler farkli kurguyla tekrar
+        pencereler = sorted(range(0, max(1, int(sure) - 120), PENCERE),
+                            key=lambda b: (sum(u["bas"] == b for u in gecmis), random.random()))
         for bas in pencereler[:2]:
             bit = min(sure, bas + PENCERE)
             # sayac kaynak zamanini gosterir
@@ -97,12 +104,17 @@ def main():
                      f"fps=2,scale=480:-2,drawtext=text='%{{eif\\:t+{bas}\\:d}}':x=8:y=8:fontsize=40:fontcolor=yellow:box=1:boxcolor=black",
                      "-c:v", "libx264", "-crf", "33", "-maxrate", "130k", "-bufsize", "260k", "-ac", "1", "-c:a", "aac",
                      "-b:a", "32k", "is/proxy.mp4")
-            p = gemini(base64.b64encode(open("is/proxy.mp4", "rb").read()).decode())
+            soru = SORU
+            eski = [u for u in gecmis if u["bas"] == bas]
+            if eski:
+                soru += ("\nShorts already made from this footage: " + json.dumps([[u.get("baslik"), u.get("acilis")] for u in eski])
+                         + ". Make a clearly different edit: another hook shot, different moments, new captions and title.")
+            p = gemini(base64.b64encode(open("is/proxy.mp4", "rb").read()).decode(), soru)
             neden = gecerli(p, bas, bit)
             if neden:
                 not_(f"{k['ad']} @{bas}: {neden}")
                 continue
-            p.update(ad=k["ad"], bas=bas)
+            p.update(ad=k["ad"], bas=bas, stil=len(gecmis) % 3)
             json.dump(p, open("is/plan.json", "w"), indent=1)
             not_(f"{k['ad']} @{bas}: {p['title']} | " + " / ".join(s["caption"] for s in p["steps"]))
             return

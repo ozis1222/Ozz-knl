@@ -3,7 +3,11 @@ import asyncio, json, os, subprocess
 import edge_tts
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
-FPS, VOICE, RATE = 30, "en-US-AndrewNeural", "+6%"
+FPS, RATE = 30, "+6%"
+# her tekrar kullanimda sirayla degisen kurgu: ses, altyazi rengi, altyazi yuksekligi, renk ayari
+STILLER = [("en-US-AndrewNeural", "white", 1300, "contrast=1.05:saturation=1.12"),
+           ("en-US-BrianNeural", "#ffe14d", 1200, "contrast=1.08:saturation=1.22:gamma_r=1.04"),
+           ("en-US-GuyNeural", "#9ff0ff", 1380, "contrast=1.10:saturation=1.0:gamma_b=1.05")]
 FONT, HANDLE = "is/Montserrat.ttf", "@BushcraftHakankarahan"
 
 
@@ -21,17 +25,17 @@ def font(size, var="ExtraBold"):
     return f
 
 
-def altyazi(txt, path):
+def altyazi(txt, path, renk, y):
     im = Image.new("RGBA", (1080, 1920))
     d, size = ImageDraw.Draw(im), 60
     while d.textlength(txt, font=font(size)) > 960:
         size -= 2
     f = font(size)
-    x, y = (1080 - d.textlength(txt, font=f)) / 2, 1300
+    x = (1080 - d.textlength(txt, font=f)) / 2
     golge = Image.new("RGBA", im.size)
     ImageDraw.Draw(golge).text((x + 3, y + 5), txt, font=f, fill=(0, 0, 0, 230), stroke_width=5, stroke_fill=(0, 0, 0, 230))
     im.alpha_composite(golge.filter(ImageFilter.GaussianBlur(6)))
-    ImageDraw.Draw(im).text((x, y), txt, font=f, fill="white", stroke_width=2, stroke_fill=(30, 30, 30))
+    ImageDraw.Draw(im).text((x, y), txt, font=f, fill=renk, stroke_width=2, stroke_fill=(30, 30, 30))
     im.save(path)
 
 
@@ -53,10 +57,10 @@ def hap(path):
     im.resize((1080, 1920), Image.LANCZOS).save(path)
 
 
-async def seslendir(text, path):
+async def seslendir(text, path, ses):
     for deneme in range(6):
         try:
-            await edge_tts.Communicate(text, VOICE, rate=RATE).save(path)
+            await edge_tts.Communicate(text, ses, rate=RATE).save(path)
             return
         except Exception as e:
             print(f"tts tekrar {deneme + 1}: {type(e).__name__}")
@@ -75,10 +79,11 @@ def main():
     url = f"https://drive.google.com/file/d/{kid}/view"
     os.makedirs("cikti", exist_ok=True)
     hap("is/hap.png")
+    ses, renk, yazi_y, renk_ayari = STILLER[P.get("stil", 0)]
     parcalar, yazilar, sesler, t = [], [], [], 0.0
     for i, s in enumerate(P["steps"]):
         mp3 = f"is/vo_{i}.mp3"
-        asyncio.run(seslendir(s["vo"], mp3))
+        asyncio.run(seslendir(s["vo"], mp3, ses))
         vd = sure(mp3)
         # adim suresi seslendirmeye gore; fazla kaynak 1-4 kat hizlandirilir, kalani kirpilir
         hedef = vd + 0.45
@@ -94,7 +99,7 @@ def main():
             cx = min(1.0, max(0.0, float(x.get("cx", 0.5))))
             calistir("ffmpeg", "-v", "error", "-y", "-i", ham, "-an", "-vf",
                      f"crop=ih*9/16:ih:(iw-ih*9/16)*{cx}:0,scale=1080:1920:flags=lanczos,setpts=(PTS-STARTPTS)/{hiz},"
-                     f"fps={FPS},eq=contrast=1.05:saturation=1.12,unsharp=5:5:0.6",
+                     f"fps={FPS},eq={renk_ayari},unsharp=5:5:0.6",
                      "-t", f"{uzun / hiz:.3f}", "-c:v", "libx264", "-preset", "veryfast", "-crf", "16", "-pix_fmt", "yuv420p", seg)
             d = sure(seg)
             parcalar.append(seg)
@@ -104,7 +109,7 @@ def main():
             print(f"UYARI: adim {i} seslendirmeden kisa")
         st = max(t0 + 0.12, sesler[-1][1] + sesler[-1][2] + 0.1 if sesler else 0)
         sesler.append((mp3, st, vd))
-        altyazi(s["caption"], f"is/yazi_{i}.png")
+        altyazi(s["caption"], f"is/yazi_{i}.png", renk, yazi_y)
         yazilar.append((f"is/yazi_{i}.png", t0, t))
     toplam = max(t, sesler[-1][1] + sesler[-1][2] + 0.3)
     open("is/liste.txt", "w").write("".join(f"file '{os.path.abspath(p)}'\n" for p in parcalar))

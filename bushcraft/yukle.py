@@ -27,7 +27,7 @@ def main():
     s = json.load(urllib.request.urlopen(urllib.request.Request(
         bas.headers["location"], video, {"content-type": "video/mp4"}, method="PUT"), timeout=600))
     yol = os.path.join(HERE, "kullanilan.json")
-    k = json.load(open(yol)) + [{"ad": P["ad"], "bas": P["bas"]}]
+    k = json.load(open(yol)) + [{"ad": P["ad"], "bas": P["bas"], "baslik": P["title"], "acilis": P["steps"][0]["pieces"][0]["start"]}]
     json.dump(k, open(yol, "w"), indent=1)
     print(f"::notice title=youtube::gizli yuklendi https://youtu.be/{s['id']}")
 
