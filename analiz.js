@@ -64,6 +64,8 @@ async function analizEt(dosya, yayinci, klipAdi) {
   return d.safe ? s : { ...s, safe: false, reason: `ikinci kontrol: ${d.reason}` };
 }
 
+const dinlenen = new Map();
+
 async function dene(anahtarlar, veri, soru) {
   let sonHata = "";
   // Google yoğunsa bekleyip yeniden dene
@@ -71,6 +73,8 @@ async function dene(anahtarlar, veri, soru) {
     if (bekle) await new Promise((r) => setTimeout(r, bekle * 1000));
     for (const model of MODELLER) {
       for (const [i, anahtar] of anahtarlar.entries()) {
+        // kotası dolan anahtar+model 10 dakika boyunca boşuna denenmez
+        if ((dinlenen.get(`${i}:${model}`) || 0) > Date.now()) continue;
         try {
           const s = await istek(anahtar, model, veri, soru);
           if (typeof s.safe !== "boolean") throw new Error("eksik cevap");
@@ -79,6 +83,7 @@ async function dene(anahtarlar, veri, soru) {
         } catch (e) {
           console.log(`Gemini anahtar ${i + 1}, ${model}: ${e.message}`);
           sonHata = `${model}: ${e.message}`;
+          if (e.message.startsWith("HTTP 429")) dinlenen.set(`${i}:${model}`, Date.now() + 10 * 60000);
         }
       }
     }
