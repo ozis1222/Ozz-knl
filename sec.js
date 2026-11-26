@@ -19,7 +19,7 @@ const yasak = new RegExp(`\\b(${k.yasakKelimeler.join("|")})`, "i");
 let adaylar = [];
 for (const y of k.yayincilar) {
   try {
-    const cikti = execFileSync("yt-dlp", ["--flat-playlist", "--playlist-end", "30", "--dump-json",
+    const cikti = execFileSync("yt-dlp", ["--flat-playlist", "--playlist-end", "60", "--dump-json",
       `https://www.twitch.tv/${y}/clips?filter=clips&range=${k.gunAraligi}`], { maxBuffer: 1 << 26 }).toString();
     for (const satir of cikti.split("\n").filter(Boolean)) {
       const c = JSON.parse(satir);
@@ -62,6 +62,6 @@ for (const c of adaylar.slice(0, k.denenecekAdaySayisi)) {
   not(`secildi ${c.yayinci} "${c.baslik}" -> ${ayar.youtube.baslik} | yuz kamerasi: ${ayar.yuz ? "var" : "yok"}`);
   return;
 }
-console.error("Uygun klip bulunamadı");
+console.log(`::error title=secim::Uygun klip bulunamadı (${Math.min(adaylar.length, k.denenecekAdaySayisi)} aday denendi)`);
 process.exit(1);
 })().catch((e) => { console.log(`::error title=secim::${e.message.replace(/\n/g, " ")}`); process.exit(1); });

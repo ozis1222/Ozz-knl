@@ -1,6 +1,6 @@
 {
   "yayincilar": ["jynxzi", "caseoh_", "stableronaldo", "kaicenat", "ishowspeed"],
-  "gunAraligi": "7d",
+  "gunAraligi": "30d",
   "sureEnAz": 12,
   "sureEnCok": 60,
   "tekrarOraniEnCok": 0.2,
@@ -8,5 +8,5 @@
   "kelimeEnAz": 12,
   "saniyedeKelimeEnAz": 0.8,
   "yasakKelimeler": ["nsfw", "nude", "naked", "sex", "porn", "boob", "goon", "gross", "n word", "sock", "strip", "kill myself", "suicide"],
-  "denenecekAdaySayisi": 30
+  "denenecekAdaySayisi": 90
 }
